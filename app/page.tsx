@@ -1,18 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
 import { useAccount } from "wagmi";
-import {
-  ArrowRight,
-  BadgePlus,
-  Clock4,
-  Sparkles,
-  Loader2,
-  AlertCircle,
-} from "lucide-react";
+import { AlertCircle, BadgePlus, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,8 +17,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { createProduct, getRecentPurchases, type PurchaseWithProduct } from "@/lib/supabase/queries";
-import { getSellerByWallet, createSeller } from "@/lib/supabase/sellers";
+import { createProduct } from "@/lib/supabase/queries";
+import { createSeller, getSellerByWallet } from "@/lib/supabase/sellers";
+import { FooterNav } from "@/components/footer-nav";
 
 type DraftField = "title" | "description" | "content" | "price";
 
@@ -42,8 +35,6 @@ export default function Home() {
   });
   const [isCreating, setIsCreating] = useState(false);
   const [status, setStatus] = useState<"idle" | "saving" | "done" | "error">("idle");
-  const [purchases, setPurchases] = useState<PurchaseWithProduct[]>([]);
-  const [isLoadingPurchases, setIsLoadingPurchases] = useState(true);
 
   useEffect(() => {
     if (!isFrameReady) {
@@ -51,19 +42,6 @@ export default function Home() {
     }
   }, [isFrameReady, setFrameReady]);
 
-  useEffect(() => {
-    async function fetchPurchases() {
-      try {
-        const data = await getRecentPurchases();
-        setPurchases(data);
-      } catch (error) {
-        console.error("Failed to fetch purchases:", error);
-      } finally {
-        setIsLoadingPurchases(false);
-      }
-    }
-    fetchPurchases();
-  }, []);
 
   const completionScore = useMemo(() => {
     const filled = Object.values(draft).filter(Boolean).length;
@@ -123,33 +101,32 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-dvh justify-center bg-[#00040f] bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.3),_transparent_55%)] px-3">
-      <main className="flex w-full max-w-[420px] flex-col gap-6 pb-10 pt-6">
-        <header className="glass relative overflow-hidden rounded-[2.25rem] border border-white/10 px-5 pb-5 pt-6 text-white shadow-[0_15px_45px_rgba(15,23,42,0.55)]">
-          <div className="mb-5 flex items-center justify-between text-xs uppercase tracking-[0.4em] text-white/60">
-            <span>signal.market</span>
-            <span>beta</span>
+    <div className="relative flex min-h-dvh justify-center bg-white px-3 pb-28 bg-[radial-gradient(circle_at_top,rgba(0,222,115,0.18),transparent_60%)]">
+      <main className="flex w-full max-w-[460px] flex-col gap-6 pb-10 pt-6">
+        <header className="relative overflow-hidden rounded-[2.25rem] border border-[#e3ece6] bg-white px-5 pb-5 pt-6 text-foreground shadow-[0_18px_40px_rgba(7,33,20,0.08)]">
+          <div className="mb-5 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.3em] text-emerald-800/60">
+            <span>alpha.markets</span>
           </div>
-          <p className="text-sm text-white/70">
-            Hey {context?.user?.displayName || "explorer"}, welcome back.
-          </p>
-          <h1 className="text-glow mt-2 text-3xl font-semibold leading-tight">
-            Drop exclusive knowledge bites for Base builders.
+          <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight text-emerald-950">
+            Monetize the specific knowledge you live every day.
           </h1>
+          {/* <p className="mt-3 text-sm text-emerald-900/80">
+            alpha.markets lets anyone package their alpha—market calls, niche playbooks, or neighborhood know-how—and sell it directly to people who value it.
+          </p> */}
 
           {!isConnected && (
-            <div className="mt-4 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+            <div className="mt-4 flex items-center gap-2 rounded-xl border border-[#fde2e2] bg-[#fff5f5] px-3 py-2 text-xs text-destructive">
               <AlertCircle className="h-4 w-4" />
-              <span>Wallet not connected. Connect to create drops.</span>
+              <span>Connect your wallet to publish your next drop.</span>
             </div>
           )}
 
-          <div className="mt-6 flex items-center justify-between gap-3">
+          {/* <div className="mt-6 flex items-center justify-between gap-3">
             <Button
               asChild
               size="sm"
-              variant="secondary"
-              className="flex-1 bg-white/15 text-sm"
+              variant="outline"
+              className="flex-1 text-sm"
             >
               <Link href="/profile">Profile & earnings</Link>
             </Button>
@@ -157,58 +134,58 @@ export default function Home() {
               Share invite
               <ArrowRight className="h-4 w-4" />
             </Button>
-          </div>
+          </div> */}
         </header>
 
-        <Card className="border-white/5 bg-white/[0.04]">
+        <Card className="border border-[#e3ece6] bg-white/90 shadow-[0_12px_32px_rgba(7,33,20,0.06)]">
           <CardHeader className="space-y-2">
             <div className="flex items-center justify-between">
-              <CardTitle>Create a knowledge drop</CardTitle>
-              <Badge variant="glow" className="text-[11px]">
+              <CardTitle className="text-lg text-emerald-950">What do you want to sell?</CardTitle>
+              <Badge variant="glow" className="text-[11px] font-semibold uppercase tracking-[0.3em]">
                 {completionScore}% ready
               </Badge>
             </div>
-            <CardDescription>
-              Sketch the drop. No heavy forms — just quick placeholders.
+            <CardDescription className="text-sm text-emerald-900/70">
+              Tell buyers what they unlock. Keep it straightforward and human.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
               <div>
-                <label className="mb-1.5 block text-[11px] uppercase tracking-[0.4em] text-white/40">Title</label>
+                <label className="mb-1.5 block text-[11px] uppercase tracking-[0.4em] text-muted-foreground">Title</label>
                 <Input
-                  placeholder="tap to drop a headline 🔥"
+                  placeholder="Weekly housing alpha — Austin"
                   value={draft.title}
                   onChange={(e) => handleChange("title", e.target.value)}
-                  className="bg-white/[0.025] border-white/10 text-white placeholder:text-white/20"
+                  className="bg-secondary/20 border-input text-foreground placeholder:text-muted-foreground/50"
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-[11px] uppercase tracking-[0.4em] text-white/40">Description</label>
+                <label className="mb-1.5 block text-[11px] uppercase tracking-[0.4em] text-muted-foreground">Description</label>
                 <Input
-                  placeholder="sketch the problem in 2 lines"
+                  placeholder="What's the headline insight?"
                   value={draft.description}
                   onChange={(e) => handleChange("description", e.target.value)}
-                  className="bg-white/[0.025] border-white/10 text-white placeholder:text-white/20"
+                  className="bg-secondary/20 border-input text-foreground placeholder:text-muted-foreground/50"
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-[11px] uppercase tracking-[0.4em] text-white/40">Content</label>
+                <label className="mb-1.5 block text-[11px] uppercase tracking-[0.4em] text-muted-foreground">Content</label>
                 <Textarea
-                  placeholder="thread outline, repo notes, back channel..."
+                  placeholder="Share the key steps, files, or proof you are including."
                   value={draft.content}
                   onChange={(e) => handleChange("content", e.target.value)}
-                  className="bg-white/[0.025] border-white/10 text-white placeholder:text-white/20 min-h-[80px]"
+                  className="bg-secondary/20 border-input text-foreground placeholder:text-muted-foreground/50 min-h-[80px]"
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-[11px] uppercase tracking-[0.4em] text-white/40">Price (USD)</label>
+                <label className="mb-1.5 block text-[11px] uppercase tracking-[0.4em] text-muted-foreground">Price (USD)</label>
                 <Input
                   type="number"
-                  placeholder="$99 · premium drop"
+                  placeholder="$99"
                   value={draft.price}
                   onChange={(e) => handleChange("price", e.target.value)}
-                  className="bg-white/[0.025] border-white/10 text-white placeholder:text-white/20"
+                  className="bg-secondary/20 border-input text-foreground placeholder:text-muted-foreground/50"
                 />
               </div>
             </div>
@@ -219,72 +196,28 @@ export default function Home() {
               className="w-full gap-2"
             >
               {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgePlus className="h-4 w-4" />}
-              {isCreating ? "Minting…" : "Create drop"}
+              {isCreating ? "Creating..." : "Monetize"}
             </Button>
             {status === "saving" && (
-              <p className="text-center text-xs text-white/70">
-                Saving to Supabase…
+              <p className="text-center text-xs text-muted-foreground">
+                Saving...
               </p>
             )}
             {status === "done" && (
-              <p className="text-center text-xs text-emerald-300">
-                Drop staged. Head to profile to publish to buyers.
+              <p className="text-center text-xs text-emerald-600">
+                Drop saved. Publish it from your profile when you are ready.
               </p>
             )}
             {status === "error" && (
-              <p className="text-center text-xs text-red-400">
+              <p className="text-center text-xs text-destructive">
                 {draft.title && draft.description && draft.content && draft.price ? "Failed to create drop. Please try again." : "Please fill in all fields."}
               </p>
             )}
           </CardContent>
         </Card>
 
-        <Card className="border-white/5 bg-white/[0.03]">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Sparkles className="h-4 w-4 text-blue-300" />
-              Fresh purchases
-            </CardTitle>
-            <CardDescription>
-              Social proof for your drop. Real entries from `purchases`.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {isLoadingPurchases ? (
-              <div className="flex justify-center py-4">
-                <Loader2 className="h-6 w-6 animate-spin text-white/30" />
-              </div>
-            ) : purchases.length === 0 ? (
-              <p className="text-center text-sm text-white/40 py-4">No purchases yet.</p>
-            ) : (
-              purchases.map((purchase) => (
-                <Link
-                  href={`/products/${purchase.product_id}`}
-                  key={purchase.id}
-                  className="flex items-center justify-between rounded-3xl border border-white/10 bg-white/5 px-4 py-3 transition-colors hover:bg-white/10"
-                >
-                  <div>
-                    <p className="text-sm font-semibold">{purchase.products?.title || "Unknown Product"}</p>
-                    <p className="text-xs text-white/60">
-                      {purchase.buyer_wallet.slice(0, 6)}...{purchase.buyer_wallet.slice(-4)} · {new Date(purchase.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-semibold">${purchase.amount_usd}</p>
-                    <p className="text-[11px] uppercase tracking-[0.3em] text-white/50">
-                      usd
-                    </p>
-                  </div>
-                </Link>
-              ))
-            )}
-            <div className="flex items-center justify-center gap-1 text-xs text-white/60">
-              <Clock4 className="h-4 w-4" />
-              Updates every minute once connected to Base.
-            </div>
-          </CardContent>
-        </Card>
       </main>
+      <FooterNav />
     </div>
   );
 }

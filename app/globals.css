@@ -2,26 +2,28 @@
 
 @layer base {
   :root {
-    --background: 222 47% 5%;
-    --foreground: 213 31% 91%;
-    --card: 222 47% 7%;
-    --card-foreground: 213 31% 91%;
-    --popover: 222 47% 7%;
-    --popover-foreground: 213 31% 91%;
-    --primary: 256 86% 59%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 215 25% 26%;
-    --secondary-foreground: 213 31% 91%;
-    --muted: 215 25% 26%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 256 86% 72%;
-    --accent-foreground: 222 47% 5%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 215 25% 26%;
-    --input: 215 25% 26%;
-    --ring: 256 86% 59%;
-    --radius: 1.5rem;
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    /* Updated Primary to #00DE73 (Spring Green) */
+    --primary: 151 100% 43.5%;
+    /* Using dark foreground for better contrast on bright green */
+    --primary-foreground: 222 47% 11%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 47% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222 47% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 151 100% 43.5%;
+    --radius: 0.75rem;
   }
 
   * {
@@ -64,12 +66,8 @@
 }
 
 @layer utilities {
-  .text-glow {
-    text-shadow: 0 10px 40px rgba(99, 102, 241, 0.45);
-  }
-
   .glass {
-    background: rgba(15, 23, 42, 0.65);
-    backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
   }
 }
