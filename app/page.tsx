@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createProduct } from "@/lib/supabase/queries";
 import { createSeller, getSellerByWallet } from "@/lib/supabase/sellers";
+import { FooterNav } from "@/components/footer-nav";
 
 type DraftField = "title" | "description" | "content" | "price";
 
@@ -100,7 +101,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-dvh justify-center bg-white px-3 bg-[radial-gradient(circle_at_top,rgba(0,222,115,0.18),transparent_60%)]">
+    <div className="relative flex min-h-dvh justify-center bg-white px-3 pb-28 bg-[radial-gradient(circle_at_top,rgba(0,222,115,0.18),transparent_60%)]">
       <main className="flex w-full max-w-[460px] flex-col gap-6 pb-10 pt-6">
         <header className="relative overflow-hidden rounded-[2.25rem] border border-[#e3ece6] bg-white px-5 pb-5 pt-6 text-foreground shadow-[0_18px_40px_rgba(7,33,20,0.08)]">
           <div className="mb-5 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.3em] text-emerald-800/60">
@@ -216,6 +217,7 @@ export default function Home() {
         </Card>
 
       </main>
+      <FooterNav />
     </div>
   );
 }

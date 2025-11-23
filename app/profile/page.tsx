@@ -29,6 +29,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getRecentPurchases, getSellerProducts, getSellerStats, type PurchaseWithProduct } from "@/lib/supabase/queries";
 import { getSellerByWallet } from "@/lib/supabase/sellers";
 import { Database } from "@/lib/supabase/types";
+import { FooterNav } from "@/components/footer-nav";
 
 type Product = Database['public']['Tables']['products']['Row'];
 
@@ -113,7 +114,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex min-h-dvh justify-center bg-background px-3">
+    <div className="flex min-h-dvh justify-center bg-background px-3 pb-28">
       <main className="flex w-full max-w-[420px] flex-col gap-5 pb-10 pt-6">
         <nav className="flex items-center justify-between">
           <Button
@@ -301,6 +302,7 @@ export default function ProfilePage() {
           </>
         )}
       </main>
+      <FooterNav />
     </div>
   );
 }
