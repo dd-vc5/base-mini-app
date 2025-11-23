@@ -20,7 +20,7 @@ export const getSellerByWallet = async (wallet: string) => {
         .from('sellers')
         .select('*')
         .eq('wallet', wallet)
-        .single();
+        .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -31,7 +31,7 @@ export const getSellerByFid = async (fid: number) => {
         .from('sellers')
         .select('*')
         .eq('fid', fid)
-        .single();
+        .maybeSingle();
 
     if (error) throw error;
     return data;

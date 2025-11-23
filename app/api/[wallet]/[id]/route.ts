@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getProduct } from '@/lib/supabase/products';
 import { getSellerByWallet } from '@/lib/supabase/sellers';
 import { withX402 } from 'x402-next';
-import { Address } from 'viem';
+import { getAddress } from 'viem';
 
 export async function GET(
     request: NextRequest,
@@ -51,10 +51,10 @@ export async function GET(
     // We cast sellerWallet to Address (assuming it's a valid EVM address as per schema)
     const wrappedHandler = withX402(
         protectedHandler,
-        sellerWallet as Address,
+        getAddress(sellerWallet),
         {
             price: `${product.price_usd}`, // Ensure string format
-            network: 'base', // Defaulting to base as per requirements
+            network: 'base-sepolia', // Using Base Sepolia testnet
             config: {
                 description: product.title || 'Product Access',
                 outputSchema: {
@@ -66,6 +66,9 @@ export async function GET(
                     },
                 },
             },
+        },
+        {
+            url: "https://x402.org/facilitator", // for testnet
         }
     );
 
