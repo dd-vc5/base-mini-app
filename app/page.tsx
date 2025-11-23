@@ -2,14 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
+import { useAccount } from "wagmi";
 import {
   ArrowRight,
   BadgePlus,
-  Bolt,
-  ChevronRight,
   Clock4,
   Sparkles,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -21,67 +23,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { createProduct, getRecentPurchases, type PurchaseWithProduct } from "@/lib/supabase/queries";
+import { getSellerByWallet, createSeller } from "@/lib/supabase/sellers";
 
 type DraftField = "title" | "description" | "content" | "price";
 
-const fieldMeta: Record<
-  DraftField,
-  { label: string; placeholder: string; helper: string }
-> = {
-  title: {
-    label: "Title",
-    placeholder: "tap to drop a headline 🔥",
-    helper: "What are you selling in one brutalist sentence?",
-  },
-  description: {
-    label: "Description",
-    placeholder: "sketch the problem in 2 lines",
-    helper: "Why would a builder pay for this alpha?",
-  },
-  content: {
-    label: "Content",
-    placeholder: "thread outline, repo notes, back channel...",
-    helper: "Paste the signal that only insiders know.",
-  },
-  price: {
-    label: "Price (USD)",
-    placeholder: "$99 · premium drop",
-    helper: "Buyers expect $30 - $250 for verified insights.",
-  },
-};
-
-const templateNeeds = [
-  {
-    buyer_wallet: "0xba5e...d00r",
-    buyer_fid: 90211,
-    ask: "Need playbook for closing brand deals with Base grants.",
-    bounty: 180,
-  },
-  {
-    buyer_wallet: "0x7ca1...fade",
-    buyer_fid: 12345,
-    ask: "Looking for Farcaster growth loop that hit 5k recasts.",
-    bounty: 240,
-  },
-];
-
-const recentPurchases = [
-  {
-    buyer_wallet: "0xf00d...beef",
-    title: "Cross-chain drip tool stack",
-    amount_usd: 72,
-    created_at: "8 min ago",
-  },
-  {
-    buyer_wallet: "0x1a2b...9c0d",
-    title: "Sponsored cast pricing sheet",
-    amount_usd: 110,
-    created_at: "25 min ago",
-  },
-];
-
 export default function Home() {
+  const router = useRouter();
   const { context, isFrameReady, setFrameReady } = useMiniKit();
+  const { address, isConnected } = useAccount();
   const [draft, setDraft] = useState<Record<DraftField, string>>({
     title: "",
     description: "",
@@ -89,7 +41,9 @@ export default function Home() {
     price: "",
   });
   const [isCreating, setIsCreating] = useState(false);
-  const [status, setStatus] = useState<"idle" | "saving" | "done">("idle");
+  const [status, setStatus] = useState<"idle" | "saving" | "done" | "error">("idle");
+  const [purchases, setPurchases] = useState<PurchaseWithProduct[]>([]);
+  const [isLoadingPurchases, setIsLoadingPurchases] = useState(true);
 
   useEffect(() => {
     if (!isFrameReady) {
@@ -97,31 +51,75 @@ export default function Home() {
     }
   }, [isFrameReady, setFrameReady]);
 
+  useEffect(() => {
+    async function fetchPurchases() {
+      try {
+        const data = await getRecentPurchases();
+        setPurchases(data);
+      } catch (error) {
+        console.error("Failed to fetch purchases:", error);
+      } finally {
+        setIsLoadingPurchases(false);
+      }
+    }
+    fetchPurchases();
+  }, []);
+
   const completionScore = useMemo(() => {
     const filled = Object.values(draft).filter(Boolean).length;
     return Math.round((filled / 4) * 100);
   }, [draft]);
 
-  const handleFieldEdit = (field: DraftField) => {
-    if (typeof window === "undefined") return;
-    const currentValue = draft[field];
-    const nextValue = window.prompt(
-      `${fieldMeta[field].label}`,
-      currentValue || "",
-    );
-    if (nextValue !== null) {
-      setDraft((prev) => ({ ...prev, [field]: nextValue.trim() }));
-      setStatus("idle");
-    }
+  const handleChange = (field: DraftField, value: string) => {
+    setDraft((prev) => ({ ...prev, [field]: value }));
+    setStatus("idle");
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
+    if (!draft.title || !draft.description || !draft.content || !draft.price) {
+      setStatus("error");
+      return;
+    }
+
+    if (!isConnected || !address) {
+      alert("Please connect your wallet first.");
+      return;
+    }
+
     setIsCreating(true);
     setStatus("saving");
-    setTimeout(() => {
-      setIsCreating(false);
+
+    try {
+      // 1. Get or Create Seller
+      let seller = await getSellerByWallet(address);
+      if (!seller) {
+        seller = await createSeller({
+          wallet: address,
+          fid: context?.user?.fid || null,
+        });
+      }
+
+      if (!seller) throw new Error("Failed to get/create seller");
+
+      // 2. Create Product
+      const newProduct = await createProduct({
+        title: draft.title,
+        description: draft.description,
+        content: draft.content,
+        price_usd: parseFloat(draft.price),
+        seller_id: seller.id,
+      });
       setStatus("done");
-    }, 1200);
+      setDraft({ title: "", description: "", content: "", price: "" });
+      if (newProduct) {
+        router.push(`/products/${newProduct.id}`);
+      }
+    } catch (error) {
+      console.error("Failed to create product:", error);
+      setStatus("error");
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
@@ -138,6 +136,14 @@ export default function Home() {
           <h1 className="text-glow mt-2 text-3xl font-semibold leading-tight">
             Drop exclusive knowledge bites for Base builders.
           </h1>
+
+          {!isConnected && (
+            <div className="mt-4 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+              <AlertCircle className="h-4 w-4" />
+              <span>Wallet not connected. Connect to create drops.</span>
+            </div>
+          )}
+
           <div className="mt-6 flex items-center justify-between gap-3">
             <Button
               asChild
@@ -163,35 +169,61 @@ export default function Home() {
               </Badge>
             </div>
             <CardDescription>
-              Tap a row to sketch the drop. No heavy forms — just quick
-              placeholders.
+              Sketch the drop. No heavy forms — just quick placeholders.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {(
-              Object.keys(fieldMeta) as Array<DraftField>
-            ).map((field: DraftField) => (
-              <FieldRow
-                key={field}
-                label={fieldMeta[field].label}
-                placeholder={fieldMeta[field].placeholder}
-                helper={fieldMeta[field].helper}
-                value={draft[field]}
-                onClick={() => handleFieldEdit(field)}
-              />
-            ))}
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1.5 block text-[11px] uppercase tracking-[0.4em] text-white/40">Title</label>
+                <Input
+                  placeholder="tap to drop a headline 🔥"
+                  value={draft.title}
+                  onChange={(e) => handleChange("title", e.target.value)}
+                  className="bg-white/[0.025] border-white/10 text-white placeholder:text-white/20"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[11px] uppercase tracking-[0.4em] text-white/40">Description</label>
+                <Input
+                  placeholder="sketch the problem in 2 lines"
+                  value={draft.description}
+                  onChange={(e) => handleChange("description", e.target.value)}
+                  className="bg-white/[0.025] border-white/10 text-white placeholder:text-white/20"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[11px] uppercase tracking-[0.4em] text-white/40">Content</label>
+                <Textarea
+                  placeholder="thread outline, repo notes, back channel..."
+                  value={draft.content}
+                  onChange={(e) => handleChange("content", e.target.value)}
+                  className="bg-white/[0.025] border-white/10 text-white placeholder:text-white/20 min-h-[80px]"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[11px] uppercase tracking-[0.4em] text-white/40">Price (USD)</label>
+                <Input
+                  type="number"
+                  placeholder="$99 · premium drop"
+                  value={draft.price}
+                  onChange={(e) => handleChange("price", e.target.value)}
+                  className="bg-white/[0.025] border-white/10 text-white placeholder:text-white/20"
+                />
+              </div>
+            </div>
 
             <Button
               onClick={handleCreate}
-              disabled={isCreating}
+              disabled={isCreating || !isConnected}
               className="w-full gap-2"
             >
-              <BadgePlus className="h-4 w-4" />
+              {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgePlus className="h-4 w-4" />}
               {isCreating ? "Minting…" : "Create drop"}
             </Button>
             {status === "saving" && (
               <p className="text-center text-xs text-white/70">
-                Saving mock data to the products table…
+                Saving to Supabase…
               </p>
             )}
             {status === "done" && (
@@ -199,38 +231,11 @@ export default function Home() {
                 Drop staged. Head to profile to publish to buyers.
               </p>
             )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-white/5 bg-white/[0.035]">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Bolt className="h-4 w-4 text-yellow-300" />
-              Buyers currently need
-            </CardTitle>
-            <CardDescription>
-              Mock data mapped from the `purchases` + `products` schema.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {templateNeeds.map((need) => (
-              <div
-                key={need.buyer_wallet}
-                className="rounded-3xl border border-dashed border-white/15 bg-white/5 p-4"
-              >
-                <div className="flex items-center justify-between text-xs uppercase tracking-[0.3em] text-white/50">
-                  <span>FID {need.buyer_fid}</span>
-                  <span>{need.buyer_wallet}</span>
-                </div>
-                <p className="mt-3 text-sm leading-relaxed text-white">
-                  {need.ask}
-                </p>
-                <div className="mt-3 flex items-center justify-between text-sm">
-                  <span className="text-white/60">Bounty</span>
-                  <span className="text-lg font-semibold">${need.bounty}</span>
-                </div>
-              </div>
-            ))}
+            {status === "error" && (
+              <p className="text-center text-xs text-red-400">
+                {draft.title && draft.description && draft.content && draft.price ? "Failed to create drop. Please try again." : "Please fill in all fields."}
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -241,29 +246,38 @@ export default function Home() {
               Fresh purchases
             </CardTitle>
             <CardDescription>
-              Social proof for your drop. Mock entries from `purchases`.
+              Social proof for your drop. Real entries from `purchases`.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {recentPurchases.map((purchase) => (
-              <div
-                key={purchase.buyer_wallet}
-                className="flex items-center justify-between rounded-3xl border border-white/10 bg-white/5 px-4 py-3"
-              >
-                <div>
-                  <p className="text-sm font-semibold">{purchase.title}</p>
-                  <p className="text-xs text-white/60">
-                    {purchase.buyer_wallet} · {purchase.created_at}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-semibold">${purchase.amount_usd}</p>
-                  <p className="text-[11px] uppercase tracking-[0.3em] text-white/50">
-                    usd
-                  </p>
-                </div>
+            {isLoadingPurchases ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-white/30" />
               </div>
-            ))}
+            ) : purchases.length === 0 ? (
+              <p className="text-center text-sm text-white/40 py-4">No purchases yet.</p>
+            ) : (
+              purchases.map((purchase) => (
+                <Link
+                  href={`/products/${purchase.product_id}`}
+                  key={purchase.id}
+                  className="flex items-center justify-between rounded-3xl border border-white/10 bg-white/5 px-4 py-3 transition-colors hover:bg-white/10"
+                >
+                  <div>
+                    <p className="text-sm font-semibold">{purchase.products?.title || "Unknown Product"}</p>
+                    <p className="text-xs text-white/60">
+                      {purchase.buyer_wallet.slice(0, 6)}...{purchase.buyer_wallet.slice(-4)} · {new Date(purchase.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-semibold">${purchase.amount_usd}</p>
+                    <p className="text-[11px] uppercase tracking-[0.3em] text-white/50">
+                      usd
+                    </p>
+                  </div>
+                </Link>
+              ))
+            )}
             <div className="flex items-center justify-center gap-1 text-xs text-white/60">
               <Clock4 className="h-4 w-4" />
               Updates every minute once connected to Base.
@@ -272,36 +286,5 @@ export default function Home() {
         </Card>
       </main>
     </div>
-  );
-}
-
-type FieldRowProps = {
-  label: string;
-  placeholder: string;
-  helper: string;
-  value?: string;
-  onClick?: () => void;
-};
-
-function FieldRow({ label, placeholder, helper, value, onClick }: FieldRowProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group w-full rounded-3xl border border-dashed border-white/15 bg-white/[0.025] px-4 py-3 text-left transition hover:border-white/40"
-    >
-      <div className="text-[11px] uppercase tracking-[0.4em] text-white/40">
-        {label}
-      </div>
-      <p
-        className={`mt-1 text-base ${value ? "text-white" : "text-white/40 italic"}`}
-      >
-        {value || placeholder}
-      </p>
-      <div className="mt-2 flex items-center justify-between text-xs text-white/50">
-        <span>{helper}</span>
-        <ChevronRight className="h-4 w-4 opacity-60" />
-      </div>
-    </button>
   );
 }
