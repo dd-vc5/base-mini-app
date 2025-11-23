@@ -34,5 +34,8 @@ export const minikitConfig = {
     ogDescription: "Monetize your specific knowledge.",
     ogImageUrl: `${ROOT_URL}/hero.png`,
   },
+  "baseBuilder": {
+    "ownerAddress": "0x2fc617a2f9e8985593E430386924f58d824fD38D"
+  }
 } as const;
 
