@@ -24,7 +24,7 @@ export const minikitConfig = {
     splashBackgroundColor: "#ffffff",
     homeUrl: ROOT_URL,
     webhookUrl: `${ROOT_URL}/api/webhook`,
-    primaryCategory: "business",
+    primaryCategory: "shopping",
     tags: ["marketplace", "knowledge", "alpha", "monetization"],
     heroImageUrl: `${ROOT_URL}/hero.png`, 
     tagline: "Monetize your alpha",
