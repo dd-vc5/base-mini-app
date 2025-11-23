@@ -43,7 +43,9 @@ export default function RootLayout({
   return (
     <RootProvider>
       <html lang="en">
-        <body className={`${inter.variable} ${sourceCodePro.variable}`}>
+        <body
+          className={`${inter.variable} ${sourceCodePro.variable} bg-background text-foreground`}
+        >
           <SafeArea>{children}</SafeArea>
         </body>
       </html>
