@@ -34,3 +34,15 @@ export const getPurchasesByProduct = async (productId: number) => {
     if (error) throw error;
     return data;
 };
+
+export const checkPurchase = async (productId: number, buyerWallet: string) => {
+    const { data, error } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('product_id', productId)
+        .eq('buyer_wallet', buyerWallet)
+        .single();
+
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "The result contains 0 rows"
+    return !!data;
+};
